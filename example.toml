@@ -1,0 +1,16 @@
+[zone]
+id = "2da441a282c0aa66f67089eec4286578"
+name = "minecraft.nexus"
+restrictive_email = true
+
+[[records]]
+name = "@"
+type = "AAAA"
+content = "100::"
+proxied = true
+
+[[records]]
+name = "www"
+type = "AAAA"
+content = "100::"
+proxied = true

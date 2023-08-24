@@ -1,0 +1,13 @@
+[package]
+name = "puffy-blowhog-dns"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
+tokio = { version = "1", default-features = false, features = ["rt"] }
+serde = { version = "1", features = ["derive"] }
+dotenvy = "0.15"
+toml = "0.7"
+thiserror = "1.0.47"
+
