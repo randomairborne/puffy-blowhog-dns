@@ -1,22 +1,25 @@
 mod config;
+mod export;
 mod record;
 
 pub use config::{Config, ZoneConfig};
+pub use export::get;
 pub use record::Record;
+
 use reqwest::Method;
 
-pub async fn entrypoint(state: State) -> Result<(), Error> {
-    let zone_id = &state.config.zone.id;
-    let zone_name = &state.config.zone.name;
-    let records_resp: CfListBody<Record> =
+pub async fn apply(state: State, config: Config) -> Result<(), Error> {
+    let zone_id = &config.zone.id;
+    let zone_name = &config.zone.name;
+    let records_resp: CfResult<Vec<Record>> =
         state.get(&format!("/zones/{zone_id}/dns_records")).await?;
     let existing: Vec<Record> = records_resp
         .result
         .into_iter()
         .map(|v| v.normalize_name(zone_name))
         .collect();
-    let mut wanted = state.config.records.clone();
-    if state.config.zone.restrictive_email {
+    let mut wanted = config.records.clone();
+    if config.zone.restrictive_email {
         add_restrictive_email(&mut wanted);
     }
     Ok(())
@@ -37,14 +40,18 @@ fn add_restrictive_email(records: &mut Vec<Record>) {
     }
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
-pub struct CfListBody<T> {
-    result: Vec<T>,
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CfResult<T> {
+    pub errors: Vec<CfMessage>,
+    pub messages: Vec<CfMessage>,
+    pub success: bool,
+    pub result: T,
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
-pub struct CfNewRecordBody {
-    result: Record,
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+pub struct CfMessage {
+    code: u32,
+    message: String,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -53,6 +60,8 @@ pub enum Error {
     Http(#[from] reqwest::Error),
     #[error("serde-json error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("serde-toml serialize error: {0}")]
+    TomlSer(#[from] toml::ser::Error),
     #[error("Invalid input: {0} for struct {1}")]
     Validate(&'static str, &'static str),
     #[error("{0}")]
@@ -63,7 +72,6 @@ pub enum Error {
 
 #[derive(Clone, Debug)]
 pub struct State {
-    pub config: Config,
     pub api_token: String,
     pub http: reqwest::Client,
 }

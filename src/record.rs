@@ -12,7 +12,7 @@ macro_rules! with_default_fields {
             pub ttl: u32,
             #[serde(skip_serializing_if = "Option::is_none")]
             pub comment: Option<String>,
-            #[serde(default = "empty_vec_string")]
+            #[serde(default = "empty_vec_string", skip_serializing_if = "Vec::is_empty")]
             pub tags: Vec<String>,
             $($manual_fields)*
         }

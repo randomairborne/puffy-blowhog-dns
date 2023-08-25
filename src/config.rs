@@ -1,12 +1,12 @@
 use crate::record::Record;
 
-#[derive(serde::Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct Config {
     pub zone: ZoneConfig,
     pub records: Vec<Record>,
 }
 
-#[derive(serde::Deserialize, Clone, Debug)]
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
 pub struct ZoneConfig {
     pub name: String,
     pub id: String,
