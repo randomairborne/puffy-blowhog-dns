@@ -1,245 +1,123 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+macro_rules! with_default_fields {
+    (
+        $StructName:ident$(<$($tparam:ident),*>)? { $($manual_fields:tt)* }
+    ) => {
+        #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+        // black magic to support optional generic params
+        pub struct $StructName$(<$($tparam),*>)? {
+            pub name: String,
+            #[serde(default = "return_1_u32")]
+            pub ttl: u32,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            pub comment: Option<String>,
+            #[serde(default = "empty_vec_string")]
+            pub tags: Vec<String>,
+            $($manual_fields)*
+        }
+
+        impl$(<$($tparam),*>)? $StructName$(<$($tparam),*>)? {
+            pub fn normalize_name(self, zone_name: &str) -> Self {
+                if self.name == zone_name {
+                    Self { name: "@".to_string(), ..self }
+                } else {
+                    Self { name: self.name.trim_end_matches(&format!(".{zone_name}")).to_string(), ..self }
+                }
+            }
+        }
+    }
+}
+
+with_default_fields!(CommonFieldsContent { pub content: String });
+with_default_fields!(CommonFieldsContentAndPriority { pub content: String, pub priority: u16 });
+with_default_fields!(CommonFieldsContentAndProxied { pub content: String, pub proxied: bool });
+with_default_fields!(CommonFieldsData<T> { pub data: T });
+with_default_fields!(CommonFieldsDataAndPriority<T> { pub data: T, pub priority: u16 });
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE", tag = "type")]
 pub enum Record {
-    A {
-        name: String,
-        content: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-        proxied: bool,
-    },
-    Aaaa {
-        name: String,
-        content: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-        proxied: bool,
-    },
-    Caa {
-        name: String,
-        data: CaaData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Cert {
-        name: String,
-        data: CertData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Cname {
-        name: String,
-        content: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-        proxied: bool,
-    },
-    DnsKey {
-        name: String,
-        data: DnsKeyData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Ds {
-        name: String,
-        data: DsData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Https {
-        name: String,
-        data: HttpsData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Loc {
-        name: String,
-        data: LocData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Mx {
-        name: String,
-        content: String,
-        priority: u16,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Naptr {
-        name: String,
-        data: NaptrData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Ns {
-        name: String,
-        content: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Ptr {
-        name: String,
-        content: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Smimea {
-        name: String,
-        data: SmimeaData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Srv {
-        name: String,
-        data: SrvData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Sshfp {
-        name: String,
-        data: SshfpData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Svcb {
-        name: String,
-        data: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Tlsa {
-        name: String,
-        data: TlsaData,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Txt {
-        name: String,
-        content: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-    },
-    Uri {
-        name: String,
-        content: String,
-        #[serde(default = "return_1_u32")]
-        ttl: u32,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        comment: Option<String>,
-        #[serde(skip_serializing_if = "Option::is_none")]
-        tags: Option<Vec<String>>,
-        priority: u16
-    },
+    A(CommonFieldsContentAndProxied),
+    Aaaa(CommonFieldsContentAndProxied),
+    Caa(CommonFieldsData<CaaData>),
+    Cert(CommonFieldsData<CertData>),
+    Cname(CommonFieldsContentAndProxied),
+    DnsKey(CommonFieldsData<DnsKeyData>),
+    Ds(CommonFieldsData<DsData>),
+    Https(CommonFieldsData<HttpsData>),
+    Loc(CommonFieldsData<LocData>),
+    Mx(CommonFieldsContentAndPriority),
+    Naptr(CommonFieldsData<NaptrData>),
+    Ns(CommonFieldsContent),
+    Ptr(CommonFieldsContent),
+    Smimea(CommonFieldsData<SmimeaData>),
+    Srv(CommonFieldsData<SrvData>),
+    Sshfp(CommonFieldsData<SshfpData>),
+    Svcb(CommonFieldsData<SvcbData>),
+    Tlsa(CommonFieldsData<TlsaData>),
+    Txt(CommonFieldsContent),
+    Url(CommonFieldsDataAndPriority<UriData>),
 }
 
 fn return_1_u32() -> u32 {
     1
 }
 
+fn empty_vec_string() -> Vec<String> {
+    Vec::new()
+}
+
 impl Record {
     pub fn restrictive_spf() -> Self {
-        Self::Txt {
-            name: "@".to_string(),
-            content: "v=spf1 -all".to_string(),
+        Self::Txt(CommonFieldsContent {
             ttl: 1, // auto
             comment: Some("SPF record automagically added by puffy blowhog".to_string()),
-            tags: None,
-        }
+            tags: vec![],
+            name: "@".to_string(),
+            content: "v=spf1 -all".to_string(),
+        })
     }
     pub fn restrictive_dkim() -> Self {
-        Self::Txt {
-            name: "*._domainkey".to_string(),
-            content: "v=DKIM1; p=".to_string(),
+        Self::Txt(CommonFieldsContent {
             ttl: 1, // auto
             comment: Some("DKIM record automagically added by puffy blowhog".to_string()),
-            tags: None,
-        }
+            tags: vec![],
+            name: "*._domainkey".to_string(),
+            content: "v=DKIM1; p=".to_string(),
+        })
     }
     pub fn restrictive_dmarc() -> Self {
-        Self::Txt {
-            name: "_dmarc".to_string(),
-            content: "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;".to_string(),
+        Self::Txt(CommonFieldsContent {
             ttl: 1, // auto
             comment: Some("DMARC record automagically added by puffy blowhog".to_string()),
-            tags: None,
+            tags: vec![],
+            name: "_dmarc".to_string(),
+            content: "v=DMARC1; p=reject; sp=reject; adkim=s; aspf=s;".to_string(),
+        })
+    }
+    pub fn normalize_name(self, zone_name: &str) -> Self {
+        match self {
+            Self::A(rec) => Self::A(rec.normalize_name(zone_name)),
+            Self::Aaaa(rec) => Self::Aaaa(rec.normalize_name(zone_name)),
+            Self::Caa(rec) => Self::Caa(rec.normalize_name(zone_name)),
+            Self::Cert(rec) => Self::Cert(rec.normalize_name(zone_name)),
+            Self::Cname(rec) => Self::Cname(rec.normalize_name(zone_name)),
+            Self::DnsKey(rec) => Self::DnsKey(rec.normalize_name(zone_name)),
+            Self::Ds(rec) => Self::Ds(rec.normalize_name(zone_name)),
+            Self::Https(rec) => Self::Https(rec.normalize_name(zone_name)),
+            Self::Loc(rec) => Self::Loc(rec.normalize_name(zone_name)),
+            Self::Mx(rec) => Self::Mx(rec.normalize_name(zone_name)),
+            Self::Naptr(rec) => Self::Naptr(rec.normalize_name(zone_name)),
+            Self::Ns(rec) => Self::Ns(rec.normalize_name(zone_name)),
+            Self::Ptr(rec) => Self::Ptr(rec.normalize_name(zone_name)),
+            Self::Smimea(rec) => Self::Smimea(rec.normalize_name(zone_name)),
+            Self::Srv(rec) => Self::Srv(rec.normalize_name(zone_name)),
+            Self::Sshfp(rec) => Self::Sshfp(rec.normalize_name(zone_name)),
+            Self::Svcb(rec) => Self::Svcb(rec.normalize_name(zone_name)),
+            Self::Tlsa(rec) => Self::Tlsa(rec.normalize_name(zone_name)),
+            Self::Txt(rec) => Self::Txt(rec.normalize_name(zone_name)),
+            Self::Url(rec) => Self::Url(rec.normalize_name(zone_name)),
         }
     }
 }
@@ -285,7 +163,7 @@ pub struct HttpsData {
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 pub struct LocData {
-    altitude:i32,
+    altitude: i32,
     lat_degrees: u8,
     lat_direction: LatitudeDirection,
     lat_minutes: Option<u8>,
@@ -296,7 +174,7 @@ pub struct LocData {
     long_seconds: Option<u8>,
     precision_horz: Option<u32>,
     precision_vert: Option<u32>,
-    size: Option<u32>
+    size: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -304,7 +182,7 @@ pub enum LatitudeDirection {
     #[serde(rename = "N")]
     North,
     #[serde(rename = "S")]
-    South
+    South,
 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
@@ -312,7 +190,7 @@ pub enum LongitudeDirection {
     #[serde(rename = "E")]
     East,
     #[serde(rename = "W")]
-    West
+    West,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -330,7 +208,7 @@ pub struct SmimeaData {
     certificate: String,
     matching_type: u8,
     selector: u8,
-    usage: u8
+    usage: u8,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -341,7 +219,7 @@ pub struct SrvData {
     proto: String,
     service: String,
     target: String,
-    weight: u16
+    weight: u16,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -349,7 +227,7 @@ pub struct SshfpData {
     algorithm: u8,
     fingerprint: String,
     #[serde(rename = "type")]
-    kind: u8
+    kind: u8,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -364,11 +242,11 @@ pub struct TlsaData {
     certificate: String,
     matching_type: u8,
     selector: u8,
-    usage: u8
+    usage: u8,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct UriData {
     content: String,
-    weight: u16
+    weight: u16,
 }
