@@ -14,10 +14,7 @@ pub async fn apply(state: State, config: Config) -> Result<(), Error> {
     let records_resp: CfResult<Vec<Record>> =
         state.get(&format!("/zones/{zone_id}/dns_records")).await?;
     let existing: Vec<Record> = records_resp
-        .result
-        .into_iter()
-        .map(|v| v.normalize_name(zone_name))
-        .collect();
+        .result;
     let mut wanted = config.records.clone();
     if config.zone.restrictive_email {
         add_restrictive_email(&mut wanted);

@@ -17,15 +17,6 @@ macro_rules! with_default_fields {
             $($manual_fields)*
         }
 
-        impl$(<$($tparam),*>)? $StructName$(<$($tparam),*>)? {
-            pub fn normalize_name(self, zone_name: &str) -> Self {
-                if self.name == zone_name {
-                    Self { name: "@".to_string(), ..self }
-                } else {
-                    Self { name: self.name.trim_end_matches(&format!(".{zone_name}")).to_string(), ..self }
-                }
-            }
-        }
     }
 }
 
